@@ -27,7 +27,8 @@ pipeline {
     post {
         success {
           echo 'success'
-           setBuildStatus("Success", "SUCCESS");
+           //setBuildStatus("Success", "SUCCESS");
+           updateGithubCommitStatus(this)
         }
 
         always {
