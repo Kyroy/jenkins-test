@@ -11,7 +11,7 @@ pipeline {
     stages {
         stage('Init') {
             steps {
-               setBuildStatus(context, "In progress...", "PENDING");
+               setBuildStatus("In progress...", "PENDING");
                 echo 'test'
             }
         }
@@ -27,7 +27,7 @@ pipeline {
     post {
         success {
           echo 'success'
-           setBuildStatus(context, "Success", "SUCCESS");
+           setBuildStatus("Success", "SUCCESS");
         }
 
         always {
@@ -42,14 +42,43 @@ pipeline {
     }
 }
 
-// Updated to account for context
-void setBuildStatus(String context, String message, String state) {
-  context = context ?: "ci/jenkins/build-status"
+def getRepoURL() {
+  sh "git config --get remote.origin.url > .git/remote-url"
+  return readFile(".git/remote-url").trim()
+}
+ 
+def getCommitSha() {
+  sh "git rev-parse HEAD > .git/current-commit"
+  return readFile(".git/current-commit").trim()
+}
+
+void setBuildStatus(String message, String state) {
   step([
       $class: "GitHubCommitStatusSetter",
       reposSource: [$class: "ManuallyEnteredRepositorySource", url: "https://github.com/my-org/my-repo"],
-      contextSource: [$class: "ManuallyEnteredCommitContextSource", context: context],
+      contextSource: [$class: "ManuallyEnteredCommitContextSource", context: "ci/jenkins/build-status"],
       errorHandlers: [[$class: "ChangingBuildStatusErrorHandler", result: "UNSTABLE"]],
       statusResultSource: [ $class: "ConditionalStatusResultSource", results: [[$class: "AnyBuildResult", message: message, state: state]] ]
   ]);
+}
+ 
+def updateGithubCommitStatus(build) {
+  // workaround https://issues.jenkins-ci.org/browse/JENKINS-38674
+  repoUrl = getRepoURL()
+  commitSha = getCommitSha()
+ 
+  step([
+    $class: 'GitHubCommitStatusSetter',
+    reposSource: [$class: "ManuallyEnteredRepositorySource", url: repoUrl],
+    commitShaSource: [$class: "ManuallyEnteredShaSource", sha: commitSha],
+    errorHandlers: [[$class: 'ShallowAnyErrorHandler']],
+    statusResultSource: [
+      $class: 'ConditionalStatusResultSource',
+      results: [
+        [$class: 'BetterThanOrEqualBuildResult', result: 'SUCCESS', state: 'SUCCESS', message: build.description],
+        [$class: 'BetterThanOrEqualBuildResult', result: 'FAILURE', state: 'FAILURE', message: build.description],
+        [$class: 'AnyBuildResult', state: 'FAILURE', message: 'Loophole']
+      ]
+    ]
+  ])
 }
