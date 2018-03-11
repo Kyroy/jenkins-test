@@ -11,6 +11,7 @@ pipeline {
     stages {
         stage('Init') {
             steps {
+               setBuildStatus(context, "In progress...", "PENDING");
                 echo 'test'
             }
         }
@@ -26,6 +27,7 @@ pipeline {
     post {
         success {
           echo 'success'
+           setBuildStatus(context, "Success", "SUCCESS");
         }
 
         always {
@@ -38,4 +40,16 @@ pipeline {
             // notifyStatusChange script: this, componentName: componentName
         }
     }
+}
+
+// Updated to account for context
+void setBuildStatus(String context, String message, String state) {
+  context = context ?: "ci/jenkins/build-status"
+  step([
+      $class: "GitHubCommitStatusSetter",
+      reposSource: [$class: "ManuallyEnteredRepositorySource", url: "https://github.com/my-org/my-repo"],
+      contextSource: [$class: "ManuallyEnteredCommitContextSource", context: context],
+      errorHandlers: [[$class: "ChangingBuildStatusErrorHandler", result: "UNSTABLE"]],
+      statusResultSource: [ $class: "ConditionalStatusResultSource", results: [[$class: "AnyBuildResult", message: message, state: state]] ]
+  ]);
 }
