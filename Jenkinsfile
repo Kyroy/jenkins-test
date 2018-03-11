@@ -14,7 +14,7 @@ pipeline {
                 echo 'test'
             }
         }
-       stage('Init') {
+       stage('Test') {
             steps {
                 echo 'test'
                sh 'pwd'
