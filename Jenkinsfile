@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 pipeline {
-   // agent { label 'go' }
+   agent any
 
     options {
         skipStagesAfterUnstable()
