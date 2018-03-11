@@ -14,6 +14,13 @@ pipeline {
                 echo 'test'
             }
         }
+       stage('Init') {
+            steps {
+                echo 'test'
+               sh 'pwd'
+               sh 'whoami'
+            }
+        }
     }
 
     post {
