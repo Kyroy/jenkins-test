@@ -30,7 +30,7 @@ pipeline {
         }
 
         always {
-           setBuildStatus(${currentBuild.currentResult}, ${currentBuild.currentResult});
+           setBuildStatus("${currentBuild.currentResult}", "${currentBuild.currentResult}");
             deleteDir()
         }
 
